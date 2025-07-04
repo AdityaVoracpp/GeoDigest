@@ -3,7 +3,7 @@ This is a fullstack web app that allows Users to search for news topics, analyze
 
 HOW TO RUN:
 1) clone the repo:
-git clone https://github.com/AdityaVoracpp/News-Sentiment-Mapper.git
+git clone https://github.com/AdityaVoracpp/News-Sentiment-Mapper-public.git
 
 2) install dependencies:
    npm install
