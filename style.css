@@ -1,21 +1,80 @@
-body {
+* {
   margin: 0;
-  font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: url('newspaperbg.png');
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Container for title and form */
+.container {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  text-align: center;
 }
 
 h1 {
-  margin: 1rem;
+  font-size: 2rem;
+  margin-bottom: 15px;
 }
 
-form {
-  margin-bottom: 1rem;
+/* Form styling */
+form.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px 25px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
 }
+
+form input {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 200px;
+}
+
+form input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff88;
+}
+
+form button {
+  padding: 10px 20px;
+  background-color: #6a82fb;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+form button:hover {
+  background-color: #5a72e8;
+}
+
 
 #map {
-  width: 80vw;
-  height: 80vh;
-  border: 1px solid #ccc;
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 65%;
+  height: 70%;
+  z-index: 0;
 }
