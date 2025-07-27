@@ -9,7 +9,7 @@ function getColorFromSenti(senti) {
 
 
 
-const map = L.map('map').setView([20, 0], 2); // world view
+const map = L.map('map').setView([20, 0], 2);
 
 let currentMarkers = [];
 
@@ -30,19 +30,18 @@ document.getElementById('queryForm').addEventListener('submit', async (e) => {
 })
 .then(res => res.json())
 .then(data => {
-  console.log('Response from backend:', data);
 
-    ///////////mark
   if (data.length === 0) {
     alert('No news found for this query.');
     return;
   }
 
-  // Clear old markers if any
   currentMarkers.forEach(marker => map.removeLayer(marker));
   currentMarkers = [];
 
-  data.forEach(article => {
+  
+
+  data.forEach((article,index) => {
     const color = getColorFromSenti(article.senti);
     const marker = L.circleMarker([article.lat, article.lon], {
       color: color,
@@ -53,16 +52,42 @@ document.getElementById('queryForm').addEventListener('submit', async (e) => {
 
     const popupContent = `
       <strong>${article.title}</strong><br>
-      ${article.description || 'No description'}<br>
+      ${article.description || 'No description available'}<br>
       <a href="${article.url}" target="_blank">Read more</a>
     `;
 
     marker.bindPopup(popupContent);
     currentMarkers.push(marker);
+
+    const headingEle = document.getElementById(`head${index + 1}`);
+    const paraEle= document.getElementById(`para${index + 1}`);
+
+    if (headingEle) headingEle.textContent = article.title;
+    if (paraEle) paraEle.textContent = article.description || 'No description available';
   });
 
   })
   .catch(err => {
-  console.error('Fetch failed:', err); // ← this WILL tell you what went wrong
+  console.error('Fetch failed:', err); 
   });
 });
+
+// === AI Summary Modal Logic ===
+
+const modal = document.getElementById("myModal");
+const btn = document.getElementById("summarizeBtn");
+const closeBtn = document.querySelector(".close");
+
+btn.onclick = function () {
+  modal.style.display = "block";
+}
+
+closeBtn.onclick = function () {
+  modal.style.display = "none";
+}
+
+window.onclick = function (event) {
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+}
