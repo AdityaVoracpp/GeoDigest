@@ -1,25 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> News sentiment mapper</title>
-    <link rel = "stylesheet" href = "style.css">
-    <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>News Sentiment Mapper</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <h1 id="title">GeoDigest</h1>
   <div class="container">
-    <h1>News Sentiment Mapper</h1>
     <form id="queryForm" class="glass-card">
       <input type="text" id="queryInput" placeholder="Enter a topic..." required />
       <button type="submit">Search</button>
     </form>
   </div>
-  <div id="map"></div>
+  <div class = main id="map"></div>
+  <div class = main id="cards">
+
+
+    <div class="card">
+      <h2 id="head1">Critian Horner fired from Redbull F1 team</h2>
+      <p id = "para1">Red Bull has announced that its new team principal, Laurent Mekies, will have "significantly reduced" duties compared to his predecessor, Christian Horner.</p>
+    </div>
+
+    <div class="card">
+      <h2 id="head2">Donald Trump tells Google, Microsoft and others to focus on Americans</h2>
+      <p id = "para2">US President Donald Trump has sent a strong message to big tech companies like Google and Microsoft, asking them to stop hiring overseas, including in countries like India. At an AI Summit held in Washington on Wednesday, Trump said that American companies should now focus more on creating jobs at home rather than building factories in China or giving jobs to Indian tech workers.</p>
+    </div>
+
+    <div class="card">
+      <h2 id="head3">Google Lands $1.2 Billion Cloud Contract From ServiceNow</h2>
+      <p id = "para3">Alphabet Inc.’s Google inked a deal worth more than $1 billion to provide cloud-computing services to software firm ServiceNow Inc., a win for Google Cloud’s efforts to get major enterprises onto its platform.</p>
+    </div>
+
+    <div class="button-container">
+      <button id="summarizeBtn">AI Summarize</button>
+    </div>
+
+
+
+    <!-- Modal -->
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>AI Summary</h2>
+        <p id="aisummary">Click summarize to generate a summary...</p>
+      </div>
+    </div>
+
+
+
+
+
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
