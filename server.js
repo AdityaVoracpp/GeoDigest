@@ -3,6 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 const fs = require('fs');
 const { GoogleGenAI }= require ("@google/genai");
+require('dotenv').config();
 
 const Sentiment = require('sentiment');
 const sentiment = new Sentiment();
@@ -17,13 +18,10 @@ const app = express();
 app.use(cors());                     //allows users from any server/ ip to access our server
 app.use(express.json());
 
+const aiapi = process.env.aiapi;
+const newsapi = process.env.newsapi;
 
-const aiparts = ["AIzaSyA","6wS2QJX","9c5yImWZn","UHTzX0V","3oq3oUt0Q"]
-const aaky = aiparts.join("");
-const ai = new GoogleGenAI({ apiKey: aaky });
-
-const parts = ["KhOoLKTVC4r","Q4kj1c0U5","OYWQrGj06o","USZWzEfmwi"];   // to prevent bot from scraping API key
-const antibot = parts.join("");
+const ai = new GoogleGenAI({ apiKey: aiapi });
 
 
 async function aisummarize(txt) {
@@ -121,7 +119,7 @@ app.post('/news', async (req,res)=>{
     }
 
     try{
-        const response = await axios.get(`https://api.thenewsapi.com/v1/news/all?api_token=${antibot}&search=${encodeURIComponent(query)}&language=en&limit=3`);
+        const response = await axios.get(`https://api.thenewsapi.com/v1/news/all?api_token=${newsapi}&search=${encodeURIComponent(query)}&language=en&limit=3`);
 
         const rawresarray = response.data.data;
 
