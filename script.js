@@ -2,7 +2,7 @@ function getColorFromSenti(senti) {
   if (senti === -1) return 'red';
   if (senti === 0) return 'yellow';
   if (senti === 1) return 'green';
-  return 'gray'; // fallback
+  return 'gray';
 }
 
 
@@ -12,6 +12,7 @@ function getColorFromSenti(senti) {
 const map = L.map('map').setView([20, 0], 2);
 
 let currentMarkers = [];
+let aisummary =[];
 
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -46,7 +47,7 @@ document.getElementById('queryForm').addEventListener('submit', async (e) => {
     const marker = L.circleMarker([article.lat, article.lon], {
       color: color,
       fillColor: color,
-      fillOpacity: 0.8,
+      fillOpacity: 0.6,
       radius: 8
     }).addTo(map);
 
@@ -61,6 +62,9 @@ document.getElementById('queryForm').addEventListener('submit', async (e) => {
 
     const headingEle = document.getElementById(`head${index + 1}`);
     const paraEle= document.getElementById(`para${index + 1}`);
+
+    aisummary[index]=article.summary;
+    console.log(JSON.stringify(article.summary));
 
     if (headingEle) headingEle.textContent = article.title;
     if (paraEle) paraEle.textContent = article.description || 'No description available';
@@ -80,6 +84,7 @@ const closeBtn = document.querySelector(".close");
 
 btn.onclick = function () {
   modal.style.display = "block";
+  document.getElementById("aisummary").textContent = aisummary.join(".\n\n")
 }
 
 closeBtn.onclick = function () {
