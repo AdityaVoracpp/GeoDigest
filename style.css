@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -17,7 +18,7 @@ body {
   font-size: 50px;
 }
 
-
+/* Container for title and form */
 .container {
   display: flex;
   top: 20px;
@@ -32,7 +33,7 @@ h1 {
   margin-bottom: 15px;
 }
 
-
+/* Form styling */
 form.glass-card {
   background: rgba(255, 255, 255, 0.1);
   padding: 15px 25px;
@@ -155,8 +156,11 @@ form button:hover {
   padding: 20px;
   border-radius: 10px;
   width: 80%;
-  max-width: 500px;
-  text-align: center;
+  text-align: left;
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  color: black; 
+  color: black;
 }
+#aisummary {
+  white-space: pre-line;
+}
+
