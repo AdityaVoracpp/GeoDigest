@@ -7,6 +7,8 @@ const { GoogleGenAI }= require ("@google/genai");
 const Sentiment = require('sentiment');
 const sentiment = new Sentiment();
 
+const PORT = process.env.PORT || 3000;
+
 
 const cities = JSON.parse(fs.readFileSync('./cities.json','utf-8'));
 const countries = JSON.parse(fs.readFileSync('./countries.json','utf-8'));
@@ -174,4 +176,4 @@ catch (err) {
 
 
 });
-app.listen(3000, ()=>console.log('server started on port 3000'))
+app.listen(PORT, ()=>console.log('server started on port 3000'))
