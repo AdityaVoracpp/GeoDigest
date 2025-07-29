@@ -18,3 +18,8 @@ git clone https://github.com/AdityaVoracpp/GeoDigest.git
 5) open the frontend:
    open index.html directly on your browser
 
+
+screenshots:
+
+<img width="1919" height="913" alt="image" src="https://github.com/user-attachments/assets/c51ea37b-beb3-41cc-aa99-fca8d7e09bbe" />
+<img width="1919" height="914" alt="image" src="https://github.com/user-attachments/assets/889aa8c9-c619-4d4b-9161-e0cea6c6e10a" />
