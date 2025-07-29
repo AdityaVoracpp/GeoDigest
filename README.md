@@ -10,9 +10,11 @@ git clone https://github.com/AdityaVoracpp/GeoDigest.git
 2) install dependencies:
    npm install
 
-3) start the server:
+3) replace process.env.<KEY> with your API keys
+
+4) start the server:
    node server.js
 
-4) open the frontend:
+5) open the frontend:
    open index.html directly on your browser
 
