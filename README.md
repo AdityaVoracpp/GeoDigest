@@ -1,5 +1,7 @@
 # GeoDigest
 This is a fullstack web app that allows Users to search for news topics, analyze the sentiment (positive, negative, neutral) and displayed on a world map.
+An AI summarize feature is also added, to get the gist of the search results.
+
 
 HOW TO RUN:
 1) clone the repo:
