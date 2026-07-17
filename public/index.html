@@ -2,53 +2,1045 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GeoDigest</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoDigest — Global News on the Map</title>
+  <meta name="description" content="Search, sentiment-analyze, and map global news articles in real time." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /* ─── Reset & Base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #0f1117;
+      --bg-secondary:  #161b27;
+      --bg-tertiary:   #1e2535;
+      --accent:        #6c8aff;
+      --accent-hover:  #5a78f0;
+      --accent-glow:   rgba(108,138,255,0.25);
+      --danger:        #ff5252;
+      --success:       #22c55e;
+      --warning:       #eab308;
+      --text-primary:  #f0f2f8;
+      --text-muted:    rgba(240,242,248,0.55);
+      --glass-bg:      rgba(255,255,255,0.04);
+      --glass-border:  rgba(255,255,255,0.09);
+      --card-bg:       rgba(255,255,255,0.07);
+      --card-hover-bg: rgba(255,255,255,0.11);
+      --shadow-lg:     0 8px 32px rgba(0,0,0,0.45);
+      --shadow-md:     0 4px 16px rgba(0,0,0,0.3);
+      --radius-lg:     16px;
+      --radius-md:     10px;
+      --radius-sm:     7px;
+      --transition:    all 0.18s ease;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ─── Map ────────────────────────────────────────────────────── */
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ─── Layout Overlay ─────────────────────────────────────────── */
+    #overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      pointer-events: auto;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ─── Glass Utilities ─────────────────────────────────────────── */
+    .glass {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px) saturate(1.8);
+      -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      background: var(--card-hover-bg);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* ─── Auth Bar ───────────────────────────────────────────────── */
+    #auth-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+    }
+
+    .username-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    /* ─── Buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 14px var(--accent-glow); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); }
+
+    .btn-danger {
+      background: rgba(255,82,82,0.12);
+      color: var(--danger);
+      border: 1px solid rgba(255,82,82,0.25);
+    }
+    .btn-danger:hover { background: rgba(255,82,82,0.22); }
+
+    .btn-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      font-size: 16px;
+      line-height: 1;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: rgba(255,255,255,0.08); }
+    .btn-icon.star-icon:hover { color: #facc15; }
+    .btn-icon.star-icon.saved { color: #facc15; }
+
+    /* ─── Sidebar ─────────────────────────────────────────────────── */
+    #sidebar {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      bottom: 20px;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* ─── Search Form ─────────────────────────────────────────────── */
+    #search-form {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+
+    #search-input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: var(--transition);
+    }
+    #search-input::placeholder { color: var(--text-muted); }
+    #search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* ─── Articles Panel ──────────────────────────────────────────── */
+    #articles-panel {
+      flex: 1;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #articles-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Scrollbar */
+    #articles-list::-webkit-scrollbar { width: 4px; }
+    #articles-list::-webkit-scrollbar-track { background: transparent; }
+    #articles-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .article-card {
+      padding: 12px;
+      position: relative;
+    }
+
+    .article-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .article-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .senti-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+    .senti-pos { background: rgba(34,197,94,0.15); color: var(--success); }
+    .senti-neg { background: rgba(255,82,82,0.15); color: var(--danger); }
+    .senti-neu { background: rgba(234,179,8,0.15); color: var(--warning); }
+
+    .location-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .article-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .article-link {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .article-link:hover { color: var(--accent-hover); }
+
+    /* ─── Summary Footer ──────────────────────────────────────────── */
+    #summary-footer {
+      padding: 10px 12px;
+      border-top: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.15);
+    }
+
+    /* ─── Empty / Loading States ──────────────────────────────────── */
+    .state-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--glass-border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Modals ──────────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+    .modal {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: scaleIn 0.18s ease;
+    }
+    @keyframes scaleIn { from { transform: scale(0.96); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+    .modal-sm { max-width: 420px; }
+    .modal-lg { max-width: 760px; max-height: 88vh; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-body::-webkit-scrollbar { width: 4px; }
+    .modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    /* ─── Form Elements ───────────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 9px 13px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: var(--transition);
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .form-error {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* ─── Favorites Panel ─────────────────────────────────────────── */
+    #fav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fav-card {
+      padding: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .fav-info { flex: 1; min-width: 0; }
+    .fav-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .fav-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ─── AI Ask Section ──────────────────────────────────────────── */
+    #ask-section { display: flex; flex-direction: column; gap: 10px; }
+    #ask-form { display: flex; gap: 8px; }
+    #ask-input { flex: 1; }
+    #ask-answer {
+      padding: 12px;
+      background: rgba(108,138,255,0.07);
+      border: 1px solid rgba(108,138,255,0.2);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    /* ─── Summary Modal Body ──────────────────────────────────────── */
+    #summary-text {
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+    }
+
+    /* ─── Legend ──────────────────────────────────────────────────── */
+    #legend {
+      position: absolute;
+      bottom: 24px;
+      left: 20px;
+      z-index: 10;
+      pointer-events: none;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── Leaflet overrides ───────────────────────────────────────── */
+    .leaflet-control-zoom { display: none !important; }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-secondary) !important;
+      border: 1px solid var(--glass-border) !important;
+      border-radius: var(--radius-md) !important;
+      box-shadow: var(--shadow-md) !important;
+      color: var(--text-primary) !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 12px !important;
+      max-width: 220px !important;
+    }
+
+    .leaflet-popup-content { color: var(--text-primary) !important; }
+    .leaflet-popup-tip { background: var(--bg-secondary) !important; }
+
+    /* ─── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 500px) {
+      #sidebar { right: 10px; left: 10px; width: auto; top: 70px; }
+      #header { padding: 12px 14px; }
+    }
+  </style>
 </head>
 <body>
-  <h1 id="title">GeoDigest</h1>
-  <div class="container">
-    <form id="queryForm" class="glass-card">
-      <input type="text" id="queryInput" placeholder="Enter a topic..." required />
-      <button type="submit">Search</button>
-    </form>
+
+  <!-- MAP -->
+  <div id="map"></div>
+
+  <!-- OVERLAY -->
+  <div id="overlay">
+    <!-- Header -->
+    <header id="header">
+      <div class="brand">
+        <h1>GeoDigest</h1>
+        <p>Search, sentiment-analyze &amp; map global news</p>
+      </div>
+      <div id="auth-bar" class="glass">
+        <!-- Filled by JS -->
+      </div>
+    </header>
   </div>
-  <div class="main" id="map"></div>
-  <div class="main" id="cards">
 
-    <div class="card">
-      <h2 id="head1">Critian Horner fired from Redbull F1 team</h2>
-      <p id="para1">Red Bull has announced that its new team principal, Laurent Mekies, will have "significantly reduced" duties compared to his predecessor, Christian Horner.</p>
-    </div>
+  <!-- SIDEBAR (outside overlay so absolute positioning works) -->
+  <aside id="sidebar">
+    <!-- Search -->
+    <form id="search-form" class="glass" onsubmit="handleSearch(event)">
+      <input id="search-input" type="text" placeholder="Search a topic, country, event…" autocomplete="off" />
+      <button id="search-btn" class="btn btn-primary" type="submit">Search</button>
+    </form>
 
-    <div class="card">
-      <h2 id="head2">Donald Trump tells Google, Microsoft and others to focus on Americans</h2>
-      <p id="para2">US President Donald Trump has sent a strong message to big tech companies like Google and Microsoft, asking them to stop hiring overseas, including in countries like India.</p>
-    </div>
-
-    <div class="card">
-      <h2 id="head3">Google Lands $1.2 Billion Cloud Contract From ServiceNow</h2>
-      <p id="para3">Alphabet Inc.'s Google inked a deal worth more than $1 billion to provide cloud-computing services to software firm ServiceNow Inc.</p>
-    </div>
-
-    <div class="button-container">
-      <button id="summarizeBtn">AI Summarize</button>
-    </div>
-
-    <div id="myModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>AI Summary</h2><br>
-        <p id="aisummary"></p>
+    <!-- Articles Panel -->
+    <div id="articles-panel" class="glass">
+      <div id="articles-list">
+        <div class="state-view" id="empty-state">
+          <span style="font-size:28px">🌍</span>
+          <p>Enter a topic above to explore global news.</p>
+        </div>
+      </div>
+      <div id="summary-footer" style="display:none;">
+        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="openSummaryModal()">
+          ✦ Generate AI Summary
+        </button>
       </div>
     </div>
+  </aside>
 
+  <!-- MAP LEGEND -->
+  <div id="legend" class="glass">
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Positive</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> Neutral</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff5252"></div> Negative</div>
   </div>
 
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <span class="modal-title" id="auth-modal-title">Login</span>
+        <button class="btn-icon" onclick="closeAuthModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input id="auth-username" class="form-input" type="text" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input id="auth-password" class="form-input" type="password" autocomplete="current-password" />
+        </div>
+        <p id="auth-error" class="form-error" style="display:none;"></p>
+        <button id="auth-submit-btn" class="btn btn-primary" style="width:100%; margin-top:4px; justify-content:center;" onclick="submitAuth()">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES MODAL -->
+  <div id="fav-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <span class="modal-title">⭐ My Saved Articles</span>
+        <button class="btn-icon" onclick="closeFavModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="fav-list">
+          <div class="state-view"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div id="ask-section">
+          <form id="ask-form" onsubmit="handleAsk(event)">
+            <input id="ask-input" class="form-input" type="text" placeholder="Ask AI anything about your saved articles…" />
+            <button id="ask-btn" class="btn btn-primary" type="submit">Ask AI</button>
+          </form>
+          <div id="ask-answer" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY MODAL -->
+  <div id="summary-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <span class="modal-title">✦ AI Summary Digest</span>
+        <button class="btn-icon" onclick="closeSummaryModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="summary-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════
+       STATE
+    ═══════════════════════════════════════════════════════════════ */
+    let token    = localStorage.getItem('gd_token') || null;
+    let username = localStorage.getItem('gd_user')  || null;
+    let articles = [];
+    let authMode = 'login'; // 'login' | 'register'
+    let mapMarkers = [];
+
+    /* ═══════════════════════════════════════════════════════════════
+       MAP INIT
+    ═══════════════════════════════════════════════════════════════ */
+    const map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: false });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    function sentiColor(s) {
+      if (s === 1)  return '#22c55e';
+      if (s === -1) return '#ff5252';
+      return '#eab308';
+    }
+
+    function sentiLabel(s) {
+      if (s === 1)  return ['Positive', 'senti-pos'];
+      if (s === -1) return ['Negative', 'senti-neg'];
+      return ['Neutral', 'senti-neu'];
+    }
+
+    function renderMarkers() {
+      mapMarkers.forEach(m => map.removeLayer(m));
+      mapMarkers = [];
+      articles.forEach(a => {
+        if (a.lat && a.lon) {
+          const color = sentiColor(a.senti);
+          const marker = L.circleMarker([a.lat, a.lon], {
+            radius: 8, color, fillColor: color, fillOpacity: 0.65, weight: 1.5
+          }).bindPopup(`<strong>${escHtml(a.title)}</strong>`);
+          marker.addTo(map);
+          mapMarkers.push(marker);
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       AUTH BAR
+    ═══════════════════════════════════════════════════════════════ */
+    function renderAuthBar() {
+      const bar = document.getElementById('auth-bar');
+      if (token) {
+        bar.innerHTML = `
+          <span class="username-pill">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            ${escHtml(username)}
+          </span>
+          <button class="btn btn-ghost" onclick="openFavModal()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Favorites
+          </button>
+          <button class="btn btn-danger" onclick="logout()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+          </button>
+        `;
+      } else {
+        bar.innerHTML = `
+          <button class="btn btn-ghost" onclick="openAuthModal('login')">Login</button>
+          <button class="btn btn-primary" onclick="openAuthModal('register')">Register</button>
+        `;
+      }
+    }
+
+    function logout() {
+      token = null; username = null;
+      localStorage.removeItem('gd_token');
+      localStorage.removeItem('gd_user');
+      renderAuthBar();
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SEARCH
+    ═══════════════════════════════════════════════════════════════ */
+    async function handleSearch(e) {
+      e.preventDefault();
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+
+      const list = document.getElementById('articles-list');
+      const footer = document.getElementById('summary-footer');
+      const btn = document.getElementById('search-btn');
+
+      btn.disabled = true;
+      btn.textContent = '...';
+      list.innerHTML = `<div class="state-view"><div class="spinner"></div><p>Scanning the globe…</p></div>`;
+      footer.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          console.error('[search] API error:', data);
+          list.innerHTML = `<div class="state-view"><span style="font-size:24px">⚠️</span><p style="color:var(--danger)">${data.msg || 'Server error. Check the console.'}</p></div>`;
+          footer.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Search';
+          return;
+        }
+        articles = data || [];
+      } catch {
+        articles = [];
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Search';
+
+      renderArticles();
+      renderMarkers();
+    }
+
+    function renderArticles() {
+      const list = document.getElementById('articles-list');
+      const footer = document.getElementById('summary-footer');
+
+      if (!articles.length) {
+        list.innerHTML = `<div class="state-view"><span style="font-size:28px">🔍</span><p>No results found. Try a different topic.</p></div>`;
+        footer.style.display = 'none';
+        return;
+      }
+
+      list.innerHTML = articles.map((a, i) => {
+        const [sLabel, sClass] = sentiLabel(a.senti);
+        const loc = a.location ? `<span class="location-tag">📍 ${escHtml(a.location)}</span>` : '';
+        return `
+          <div class="card article-card">
+            <div class="article-card-header">
+              <span class="article-title">${escHtml(a.title)}</span>
+              ${token ? `<button class="btn-icon star-icon" title="Save to favorites" onclick="saveFavorite(${i}, this)">★</button>` : ''}
+            </div>
+            <div class="article-meta">
+              <span class="senti-badge ${sClass}">${sLabel}</span>
+              ${loc}
+            </div>
+            <p class="article-desc">${escHtml(a.description || '')}</p>
+            <a class="article-link" href="${escHtml(a.url)}" target="_blank" rel="noreferrer">Read full article →</a>
+          </div>
+        `;
+      }).join('');
+
+      footer.style.display = 'block';
+    }
+
+    async function saveFavorite(idx, btn) {
+      if (!token) { alert('Please login to save favorites.'); return; }
+      const article = articles[idx];
+      try {
+        const res = await fetch('/api/users/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(article)
+        });
+        if (res.ok) {
+          btn.classList.add('saved');
+          btn.title = 'Saved!';
+          btn.disabled = true;
+        } else {
+          const d = await res.json();
+          if (d.msg === 'Article already in favorites') {
+            btn.classList.add('saved');
+            btn.title = 'Already saved';
+            btn.disabled = true;
+          }
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SUMMARY MODAL
+    ═══════════════════════════════════════════════════════════════ */
+    function openSummaryModal() {
+      const text = articles.map(a => a.summary || '').filter(Boolean).join('\n\n');
+      document.getElementById('summary-text').textContent = text || 'No AI summaries available for the current results.';
+      document.getElementById('summary-modal').style.display = 'flex';
+    }
+    function closeSummaryModal() { document.getElementById('summary-modal').style.display = 'none'; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       AUTH MODAL
+    ═══════════════════════════════════════════════════════════════ */
+    function openAuthModal(mode) {
+      authMode = mode;
+      document.getElementById('auth-modal-title').textContent = mode === 'register' ? 'Create Account' : 'Sign In';
+      document.getElementById('auth-submit-btn').textContent  = mode === 'register' ? 'Create Account' : 'Sign In';
+      document.getElementById('auth-username').value = '';
+      document.getElementById('auth-password').value = '';
+      document.getElementById('auth-error').style.display = 'none';
+      document.getElementById('auth-modal').style.display = 'flex';
+    }
+    function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+
+    async function submitAuth() {
+      const uname = document.getElementById('auth-username').value.trim();
+      const pass  = document.getElementById('auth-password').value;
+      const errEl = document.getElementById('auth-error');
+      const btn   = document.getElementById('auth-submit-btn');
+
+      errEl.style.display = 'none';
+      if (!uname || !pass) { showAuthError('Username and password are required.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Please wait…';
+
+      const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: uname, password: pass })
+        });
+        const data = await res.json();
+        if (!res.ok) { showAuthError(data.msg || 'Something went wrong.'); return; }
+
+        token = data.token;
+        username = data.user.username;
+        localStorage.setItem('gd_token', token);
+        localStorage.setItem('gd_user', username);
+        closeAuthModal();
+        renderAuthBar();
+        renderArticles(); // re-render to show star buttons
+      } catch {
+        showAuthError('Network error. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = authMode === 'register' ? 'Create Account' : 'Sign In';
+      }
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       FAVORITES MODAL
+    ═══════════════════════════════════════════════════════════════ */
+    let favorites = [];
+
+    async function openFavModal() {
+      document.getElementById('fav-modal').style.display = 'flex';
+      document.getElementById('ask-answer').style.display = 'none';
+      document.getElementById('ask-input').value = '';
+      await loadFavorites();
+    }
+    function closeFavModal() { document.getElementById('fav-modal').style.display = 'none'; }
+
+    async function loadFavorites() {
+      const listEl = document.getElementById('fav-list');
+      listEl.innerHTML = `<div class="state-view"><div class="spinner"></div></div>`;
+      try {
+        const res = await fetch('/api/users/favorites', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        favorites = data.favorites || [];
+        renderFavorites();
+      } catch {
+        listEl.innerHTML = `<div class="state-view"><p style="color:var(--danger)">Failed to load favorites.</p></div>`;
+      }
+    }
+
+    function renderFavorites() {
+      const listEl = document.getElementById('fav-list');
+      if (!favorites.length) {
+        listEl.innerHTML = `<div class="state-view"><span style="font-size:28px">⭐</span><p>No saved articles yet. Click ★ on any search result to save.</p></div>`;
+        return;
+      }
+      listEl.innerHTML = favorites.map(fav => `
+        <div class="card fav-card" data-id="${escHtml(fav._id)}">
+          <div class="fav-info">
+            <p class="fav-title">${escHtml(fav.title)}</p>
+            <p class="fav-desc">${escHtml(fav.summary || fav.description || '')}</p>
+          </div>
+          <button class="btn btn-danger" style="flex-shrink:0; font-size:11px; padding:5px 10px;" onclick="removeFavorite('${escHtml(fav._id)}')">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    async function removeFavorite(id) {
+      try {
+        const res = await fetch(`/api/users/favorites/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          favorites = favorites.filter(f => f._id !== id);
+          renderFavorites();
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       ASK AI (RAG)
+    ═══════════════════════════════════════════════════════════════ */
+    async function handleAsk(e) {
+      e.preventDefault();
+      const question = document.getElementById('ask-input').value.trim();
+      if (!question) return;
+
+      const answerEl = document.getElementById('ask-answer');
+      const btn = document.getElementById('ask-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Thinking…';
+      answerEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/users/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ question })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || 'Failed to get answer');
+        answerEl.textContent = data.answer;
+        answerEl.style.display = 'block';
+      } catch (err) {
+        answerEl.textContent = `Error: ${err.message}`;
+        answerEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ask AI';
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CLOSE MODALS ON BACKDROP CLICK
+    ═══════════════════════════════════════════════════════════════ */
+    ['auth-modal', 'fav-modal', 'summary-modal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) {
+          this.style.display = 'none';
+        }
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════════
+       KEYBOARD ESC
+    ═══════════════════════════════════════════════════════════════ */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        ['auth-modal', 'fav-modal', 'summary-modal'].forEach(id => {
+          document.getElementById(id).style.display = 'none';
+        });
+      }
+    });
+
+    /* ═══════════════════════════════════════════════════════════════
+       UTILITY
+    ═══════════════════════════════════════════════════════════════ */
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       INIT
+    ═══════════════════════════════════════════════════════════════ */
+    renderAuthBar();
+  </script>
 </body>
 </html>
