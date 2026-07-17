@@ -1,0 +1,96 @@
+const { GoogleGenAI } = require('@google/genai');
+const { AI_API_KEY } = require('../config/env');
+
+const ai = new GoogleGenAI({ apiKey: AI_API_KEY });
+
+/**
+ * Summarizes a piece of news text using the Gemini model.
+ * @param {string} txt - The raw article text to summarize.
+ * @returns {Promise<string>} AI-generated summary string.
+ */
+async function summarize(txt) {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents:
+      'Summarize and give some opinion/inference from the following news under 100 words: ' + txt,
+  });
+  return response.text;
+}
+
+/**
+ * Analyzes a batch of news articles.
+ * @param {Array} articles
+ * @returns {Promise<Array>}
+ */
+async function analyzeArticlesBatch(articles) {
+  const prompt = `Analyze the following news articles and extract a summary, city, and country for each.
+Return as a JSON array of objects: { index, summary, city, country }.
+Articles: ${JSON.stringify(articles)}`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+
+  try {
+    return JSON.parse(response.text);
+  } catch (err) {
+    console.error('Failed to parse AI batch structured response:', response.text, err);
+    return articles.map((art, idx) => ({
+      index: idx,
+      summary: art.description || art.title,
+      city: null,
+      country: null,
+    }));
+  }
+}
+
+/**
+ * Answers a user's question using their saved favorite articles as context.
+ * @param {string} question - The user's question.
+ * @param {Array<{title: string, description: string, summary: string, source: string, url: string}>} articles
+ * @returns {Promise<{answer: string, sourcesUsed: number[]}>}
+ */
+async function answerFromFavorites(question, articles) {
+  if (!articles || articles.length === 0) {
+    return {
+      answer: 'You have no saved articles to ask questions about. Save some articles first!',
+      sourcesUsed: [],
+    };
+  }
+
+  const formattedArticles = articles
+    .map(
+      (art, idx) => `[Article ${idx + 1}]
+Title: ${art.title}
+Source: ${art.source || 'Unknown'}
+Summary: ${art.summary || art.description || 'No summary available'}
+URL: ${art.url}`
+    )
+    .join('\n---\n');
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: `You are a helpful news research assistant. The user has saved the following news articles as favorites. Answer their question using ONLY the information from these articles. If the answer cannot be found in the articles, say "I couldn't find information about that in your saved articles."
+
+Always cite which article(s) you used by their number (e.g., [Article 1], [Article 3]).
+
+SAVED ARTICLES:
+${formattedArticles}
+
+USER QUESTION: ${question}
+
+Respond as a JSON object with keys "answer" (string) and "sourcesUsed" (array of 1-based article index numbers).`,
+  });
+
+  try {
+    // Strip markdown code fences if present
+    const raw = response.text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('[ai] Failed to parse RAG response:', err.message);
+    return { answer: response.text || 'Sorry, I could not generate an answer.', sourcesUsed: [] };
+  }
+}
+
+module.exports = { summarize, analyzeArticlesBatch, answerFromFavorites };
