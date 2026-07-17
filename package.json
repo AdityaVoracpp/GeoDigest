@@ -13,12 +13,17 @@
   "dependencies": {
     "@google/genai": "^1.11.0",
     "axios": "^1.10.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.4",
+    "redis": "^6.1.0",
     "sentiment": "^5.0.2"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "nodemon": "^3.1.0"
   }
 }
