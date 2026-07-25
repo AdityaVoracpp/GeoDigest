@@ -14,7 +14,7 @@ const TOP_K = 5; // Number of most-relevant articles to retrieve
  * 3. Passes only those articles to the AI for answering.
  */
 async function askAboutFavorites(req, res, next) {
-  const { question } = req.body;
+  const { question, history = [] } = req.body;
 
   if (!question || !question.trim()) {
     return res.status(400).json({ msg: 'question field is required' });
@@ -33,8 +33,16 @@ async function askAboutFavorites(req, res, next) {
       });
     }
 
-    // Generate embedding for the question
-    const questionEmbedding = await generateEmbedding(question.trim());
+    // Cheap contextualization: prepend the last user question to improve
+    // embedding quality for vague follow-ups (e.g. "what about the other one?")
+    // without burning an extra LLM call to rewrite the query.
+    const lastUserMsg = [...history].reverse().find((m) => m.role === 'user');
+    const textToEmbed = lastUserMsg
+      ? `${lastUserMsg.text} ${question.trim()}`
+      : question.trim();
+
+    // Generate embedding for the (contextualized) question
+    const questionEmbedding = await generateEmbedding(textToEmbed);
     console.log(`[rag] Generated question embedding (${questionEmbedding.length}d)`);
 
     // Perform MongoDB Atlas Vector Search
@@ -87,8 +95,8 @@ async function askAboutFavorites(req, res, next) {
       });
     }
 
-    // Send only the relevant articles to the AI
-    const result = await answerFromFavorites(question.trim(), relevantArticles);
+    // Send relevant articles + conversation history to the AI
+    const result = await answerFromFavorites(question.trim(), relevantArticles, history);
 
     res.json({
       answer: result.answer,
