@@ -1,8 +1,16 @@
+const crypto = require('crypto');
 const { fetchArticles } = require('../services/newsService');
 const { findLocation, jitter } = require('../services/locationService');
 const { getScore } = require('../services/sentimentService');
 const { summarize } = require('../services/aiService');
 const { cacheGet, cacheSet } = require('../services/cacheService');
+
+/**
+ * Helper to generate a consistent hash for a string
+ */
+function generateHash(str) {
+    return crypto.createHash('md5').update(str).digest('hex');
+}
 
 /**
  * POST /api/news
@@ -45,12 +53,29 @@ async function getNews(req, res, next) {
 
                 const location = findLocation(text);
                 const senti = getScore(text);
-                // Summarize is best-effort — rate limits / errors should not kill the request
+                
+                // Summarize with cache
                 let summary = '';
-                try {
-                    summary = await summarize(aiRaw);
-                } catch (aiErr) {
-                    console.warn(`[ai] summarize skipped: ${aiErr.message}`);
+                if (aiRaw.trim()) {
+                    const articleHash = generateHash(aiRaw);
+                    const aiCacheKey = `ai:summary:${articleHash}`;
+                    
+                    const cachedSummary = await cacheGet(aiCacheKey);
+                    if (cachedSummary) {
+                        console.log(`[cache] HIT for "${aiCacheKey}"`);
+                        summary = cachedSummary;
+                    } else {
+                        try {
+                            console.log(`[cache] MISS for "${aiCacheKey}"`);
+                            summary = await summarize(aiRaw);
+                            // Cache AI summary for 7 days (604800s) since news text doesn't change
+                            if (summary) {
+                                await cacheSet(aiCacheKey, summary, 604800);
+                            }
+                        } catch (aiErr) {
+                            console.warn(`[ai] summarize skipped: ${aiErr.message}`);
+                        }
+                    }
                 }
 
                 const offset = jitter();
@@ -72,8 +97,9 @@ async function getNews(req, res, next) {
             })
         );
 
-        await cacheSet(cacheKey, enriched, 600);
-        console.log(`[cache] MISS — stored "${cacheKey}" (TTL 600s)`);
+        // Cache the final enriched result for 1 hour (3600 seconds)
+        await cacheSet(cacheKey, enriched, 3600);
+        console.log(`[cache] MISS — stored "${cacheKey}" (TTL 3600s)`);
 
         res.json(enriched);
     } catch (err) {

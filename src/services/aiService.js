@@ -46,10 +46,32 @@ Articles: ${JSON.stringify(articles)}`;
 }
 
 /**
+ * Generates a 768-d vector embedding for the given text using Google's gemini-embedding-001.
+ * @param {string} text - The text to embed (e.g. article title + summary).
+ * @returns {Promise<number[]>} 768-dimensional embedding array.
+ */
+async function generateEmbedding(text) {
+  if (!text || !text.trim()) {
+    throw new Error('Cannot generate embedding for empty text');
+  }
+
+  const result = await ai.models.embedContent({
+    model: 'gemini-embedding-001',
+    contents: text,
+    config: {
+      outputDimensionality: 768
+    }
+  });
+
+  return result.embeddings[0].values;
+}
+
+/**
  * Answers a user's question using their saved favorite articles as context.
+ * Expects only the top-K most relevant articles (pre-filtered by vector search).
  * @param {string} question - The user's question.
  * @param {Array<{title: string, description: string, summary: string, source: string, url: string}>} articles
- * @returns {Promise<{answer: string, sourcesUsed: number[]}>}
+ * @returns {Promise<{answer: string, sourcesUsed: string[]}>}
  */
 async function answerFromFavorites(question, articles) {
   if (!articles || articles.length === 0) {
@@ -71,26 +93,27 @@ URL: ${art.url}`
 
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: `You are a helpful news research assistant. The user has saved the following news articles as favorites. Answer their question using ONLY the information from these articles. If the answer cannot be found in the articles, say "I couldn't find information about that in your saved articles."
+    config: {
+      responseMimeType: 'application/json',
+    },
+    contents: `You are a helpful news research assistant. The user has saved the following news articles as favorites. These are the articles most relevant to the user's question, found via semantic search. Answer their question using ONLY the information from these articles. If the answer cannot be found in the articles, say "I couldn't find information about that in your saved articles."
 
 Always cite which article(s) you used by their number (e.g., [Article 1], [Article 3]).
 
-SAVED ARTICLES:
+RELEVANT SAVED ARTICLES:
 ${formattedArticles}
 
 USER QUESTION: ${question}
 
-Respond as a JSON object with keys "answer" (string) and "sourcesUsed" (array of 1-based article index numbers).`,
+Respond with a JSON object with keys "answer" (string) and "sourcesUsed" (array of 1-based article index numbers).`,
   });
 
   try {
-    // Strip markdown code fences if present
-    const raw = response.text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
-    return JSON.parse(raw);
+    return JSON.parse(response.text);
   } catch (err) {
-    console.error('[ai] Failed to parse RAG response:', err.message);
-    return { answer: response.text || 'Sorry, I could not generate an answer.', sourcesUsed: [] };
+    console.error('[ai] Failed to parse RAG response:', err.message, response.text);
+    return { answer: 'Sorry, I could not generate an answer.', sourcesUsed: [] };
   }
 }
 
-module.exports = { summarize, analyzeArticlesBatch, answerFromFavorites };
+module.exports = { summarize, analyzeArticlesBatch, generateEmbedding, answerFromFavorites };

@@ -9,7 +9,10 @@ async function initRedis() {
     client = createClient({ 
       url: REDIS_URL,
       socket: {
-        reconnectStrategy: false // Disable infinite reconnect attempts
+        reconnectStrategy: (retries) => {
+          if (retries > 5) return false;
+          return Math.min(retries * 200, 2000);
+        }
       }
     });
 
@@ -19,7 +22,7 @@ async function initRedis() {
     });
 
     client.on('ready', () => {
-      console.log('[redis] Connected');
+      console.log('[redis] Connected successfully to Docker Redis');
       isReady = true;
     });
 
