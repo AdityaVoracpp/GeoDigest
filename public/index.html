@@ -969,8 +969,10 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       ASK AI (RAG)
+       ASK AI (RAG) CHATBOT
     ═══════════════════════════════════════════════════════════════ */
+    let chatHistory = [];
+
     async function handleAsk(e) {
       e.preventDefault();
       const question = document.getElementById('ask-input').value.trim();
@@ -978,27 +980,59 @@
 
       const answerEl = document.getElementById('ask-answer');
       const btn = document.getElementById('ask-btn');
+      const inputEl = document.getElementById('ask-input');
+
+      // Clear input immediately
+      inputEl.value = '';
+      
+      // Ensure the chat container is visible
+      answerEl.style.display = 'flex';
+      answerEl.style.flexDirection = 'column';
+      answerEl.style.gap = '8px';
+      answerEl.style.maxHeight = '300px';
+      answerEl.style.overflowY = 'auto';
+
+      // Add user message to UI
+      const userMsgHtml = `<div style="align-self: flex-end; background: var(--accent); color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; max-width: 85%;"><strong>You:</strong> ${escHtml(question)}</div>`;
+      answerEl.insertAdjacentHTML('beforeend', userMsgHtml);
+      answerEl.scrollTop = answerEl.scrollHeight;
+
+      // Add temporary loading indicator
+      const loadingId = 'loading-' + Date.now();
+      const loadingHtml = `<div id="${loadingId}" style="align-self: flex-start; background: var(--bg-tertiary); padding: 8px 12px; border-radius: 12px 12px 12px 0; max-width: 85%; color: var(--text-muted);"><em>Thinking…</em></div>`;
+      answerEl.insertAdjacentHTML('beforeend', loadingHtml);
+      answerEl.scrollTop = answerEl.scrollHeight;
 
       btn.disabled = true;
-      btn.textContent = 'Thinking…';
-      answerEl.style.display = 'none';
 
       try {
         const res = await fetch('/api/users/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ question })
+          body: JSON.stringify({ question, history: chatHistory })
         });
         const data = await res.json();
+        
+        document.getElementById(loadingId).remove();
+        
         if (!res.ok) throw new Error(data.msg || 'Failed to get answer');
-        answerEl.textContent = data.answer;
-        answerEl.style.display = 'block';
+        
+        // Add AI answer to UI
+        const aiMsgHtml = `<div style="align-self: flex-start; background: rgba(108,138,255,0.1); border: 1px solid rgba(108,138,255,0.2); padding: 8px 12px; border-radius: 12px 12px 12px 0; max-width: 95%;"><strong>AI:</strong> ${escHtml(data.answer)}</div>`;
+        answerEl.insertAdjacentHTML('beforeend', aiMsgHtml);
+        answerEl.scrollTop = answerEl.scrollHeight;
+
+        // Push to chat history for next request
+        chatHistory.push({ role: 'user', text: question });
+        chatHistory.push({ role: 'model', text: data.answer });
       } catch (err) {
-        answerEl.textContent = `Error: ${err.message}`;
-        answerEl.style.display = 'block';
+        document.getElementById(loadingId)?.remove();
+        const errorHtml = `<div style="align-self: flex-start; background: rgba(255,82,82,0.1); color: var(--danger); padding: 8px 12px; border-radius: 12px; max-width: 85%;">Error: ${escHtml(err.message)}</div>`;
+        answerEl.insertAdjacentHTML('beforeend', errorHtml);
+        answerEl.scrollTop = answerEl.scrollHeight;
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Ask AI';
+        inputEl.focus();
       }
     }
 
