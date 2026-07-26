@@ -17,9 +17,15 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── API Routes ─────────────────────────────────────────────────────────────
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 app.use('/api/news', newsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+
+// ── SPA Fallback ───────────────────────────────────────────────────────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 // ── Global Error Handler ───────────────────────────────────────────────────
 app.use(errorHandler);
